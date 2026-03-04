@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Client Account – Form Prototype</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons" />
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://unpkg.com/@emotion/react@11/dist/emotion-react.umd.min.js"></script>
+  <script src="https://unpkg.com/@emotion/styled@11/dist/emotion-styled.umd.min.js"></script>
+  <script src="https://unpkg.com/@mui/material@5/umd/material-ui.development.js"></script>
+  <script src="https://unpkg.com/react-hook-form@7/dist/index.umd.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #f0f4f8; font-family: 'Roboto', sans-serif; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const {
+      TextField, Autocomplete, Box, Button, IconButton,
+      ThemeProvider, createTheme, CssBaseline, Typography,
+      Paper, Tooltip, Chip, Divider, Fade, Collapse,
+      alpha
+    } = MaterialUI;
+
+    const { useForm, Controller } = ReactHookForm;
+
+    /* ─── Theme ──────────────────────────────────────────────── */
+    const theme = createTheme({
+      palette: {
+        mode: 'light',
+        primary:    { main: '#1565C0', light: '#5E92F3', dark: '#003c8f' },
+        success:    { main: '#2E7D32' },
+        error:      { main: '#C62828' },
+        background: { default: '#f0f4f8', paper: '#ffffff' },
+        text:       { primary: '#1A237E', secondary: '#546E7A' },
+      },
+      shape: { borderRadius: 10 },
+      typography: {
+        fontFamily: 'Roboto, sans-serif',
+        h6: { fontWeight: 700, letterSpacing: 0.5 },
+      },
+      components: {
+        MuiButton: {
+          styleOverrides: {
+            containedPrimary: {
+              background: 'linear-gradient(135deg, #1565C0 0%, #1976D2 100%)',
+              boxShadow: '0 4px 14px rgba(21, 101, 192, 0.4)',
+              '&:hover': {
+                background: 'linear-gradient(135deg, #003c8f 0%, #1565C0 100%)',
+                boxShadow: '0 6px 20px rgba(21, 101, 192, 0.5)',
+              },
+            },
+          },
+        },
+        MuiTextField: {
+          defaultProps: { size: 'small' },
+        },
+        MuiOutlinedInput: {
+          styleOverrides: {
+            root: { borderRadius: 8 },
+          },
+        },
+      },
+    });
+
+    /* ─── Mock Data ──────────────────────────────────────────── */
+    const mockAccounts = [
+      { id: 1,  bankKey: '101', accountNumber: '1234567890123', possibleModify: 'both'     },
+      { id: 2,  bankKey: '102', accountNumber: '9876543210987', possibleModify: 'account'  },
+      { id: 3,  bankKey: '103', accountNumber: '1111111111111', possibleModify: 'bank-key' },
+      { id: 4,  bankKey: '104', accountNumber: '2222222222222', possibleModify: 'both'     },
+      { id: 5,  bankKey: '105', accountNumber: '3333333333333', possibleModify: 'account'  },
+      { id: 6,  bankKey: '106', accountNumber: '4444444444444', possibleModify: 'bank-key' },
+      { id: 7,  bankKey: '107', accountNumber: '5678901234567', possibleModify: 'both'     },
+      { id: 8,  bankKey: '108', accountNumber: '6666666666666', possibleModify: 'account'  },
+      { id: 9,  bankKey: '109', accountNumber: '7890123456789', possibleModify: 'bank-key' },
+      { id: 10, bankKey: '110', accountNumber: '8888888888888', possibleModify: 'both'     },
+    ];
+
+    /* ─── Helpers ────────────────────────────────────────────── */
+    const formatAccount = (acc) => acc ? `${acc.bankKey}-${acc.accountNumber}` : '';
+
+    const modifyChipProps = {
+      'both':     { color: 'success', label: 'both' },
+      'account':  { color: 'info',    label: 'account' },
+      'bank-key': { color: 'warning', label: 'bank-key' },
+    };
+
+    /* ─── Shared icon button style ───────────────────────────── */
+    const circleBtn = (color = 'primary.main', hoverBg = 'primary.main') => ({
+      width: 30, height: 30, borderRadius: '50%',
+      border: '1.5px solid',
+      borderColor: color,
+      color: color,
+      transition: 'all .2s ease',
+      '&:hover': { bgcolor: hoverBg, color: '#fff', borderColor: hoverBg },
+      '&.Mui-disabled': { borderColor: 'action.disabled', color: 'action.disabled' },
+    });
+
+    /* ─── LockBadge helper ───────────────────────────────────── */
+    function LockBadge({ label, editable }) {
+      return (
+        <Box sx={{
+          display: 'flex', alignItems: 'center', gap: 0.3, px: 0.7, py: 0.15,
+          borderRadius: 1, border: '1px solid',
+          borderColor: editable ? 'success.light' : 'divider',
+          bgcolor: editable ? alpha('#2E7D32', 0.06) : alpha('#000', 0.03),
+        }}>
+          <span className="material-icons" style={{ fontSize: 10, color: editable ? '#2E7D32' : '#B0BEC5' }}>
+            {editable ? 'lock_open' : 'lock'}
+          </span>
+          <Typography variant="caption" sx={{ fontSize: '0.6rem', color: editable ? 'success.main' : 'text.disabled', fontWeight: 600 }}>
+            {label}
+          </Typography>
+        </Box>
+      );
+    }
+
+    /* ─── Main Component ─────────────────────────────────────── */
+    function ClientAccountForm() {
+      const { control, handleSubmit, setValue } = useForm({
+        defaultValues: { clientAccount: null },
+      });
+
+      /* mode: 'search' | 'manual' */
+      const [mode,           setMode]           = React.useState('search');
+      const [currentAccount, setCurrentAccount] = React.useState(null);
+      const [isEditing,      setIsEditing]      = React.useState(false);
+      const [editValues,     setEditValues]      = React.useState({ bankKey: '', accountNumber: '' });
+      const [manualValues,   setManualValues]    = React.useState({ bankKey: '', accountNumber: '' });
+      const [submittedInfo,  setSubmittedInfo]   = React.useState(null);
+
+      const canEditBankKey = currentAccount && ['bank-key', 'both'].includes(currentAccount.possibleModify);
+      const canEditAccount = currentAccount && ['account',  'both'].includes(currentAccount.possibleModify);
+
+      /* effective account shown in result */
+      const effectiveAccount = mode === 'manual'
+        ? (manualValues.bankKey || manualValues.accountNumber
+            ? { bankKey: manualValues.bankKey, accountNumber: manualValues.accountNumber }
+            : null)
+        : currentAccount;
+
+      const isSubmittable = mode === 'manual'
+        ? (manualValues.bankKey.trim() !== '' && manualValues.accountNumber.trim() !== '')
+        : (currentAccount !== null && !isEditing);
+
+      /* ── handlers ── */
+      const switchToManual = () => {
+        setMode('manual');
+        setIsEditing(false);
+        setSubmittedInfo(null);
+        /* pre-fill from selected account if any */
+        if (currentAccount) {
+          setManualValues({ bankKey: currentAccount.bankKey, accountNumber: currentAccount.accountNumber });
+        }
+      };
+
+      const switchToSearch = () => {
+        setMode('search');
+        setManualValues({ bankKey: '', accountNumber: '' });
+        setSubmittedInfo(null);
+      };
+
+      const handleSelect = (newValue) => {
+        setCurrentAccount(newValue);
+        setValue('clientAccount', newValue);
+        setIsEditing(false);
+        setSubmittedInfo(null);
+      };
+
+      const handleEditOpen = () => {
+        if (!currentAccount) return;
+        setEditValues({ bankKey: currentAccount.bankKey, accountNumber: currentAccount.accountNumber });
+        setIsEditing(true);
+      };
+
+      const handleSave = () => {
+        const updated = { ...currentAccount };
+        if (canEditBankKey) updated.bankKey       = editValues.bankKey;
+        if (canEditAccount) updated.accountNumber = editValues.accountNumber;
+        setCurrentAccount(updated);
+        setValue('clientAccount', updated);
+        setIsEditing(false);
+        setSubmittedInfo(null);
+      };
+
+      const handleDiscard = () => setIsEditing(false);
+
+      const onSubmit = () => {
+        if (effectiveAccount) setSubmittedInfo(formatAccount(effectiveAccount));
+      };
+
+      const chip = currentAccount ? modifyChipProps[currentAccount.possibleModify] : null;
+
+      return (
+        <Box sx={{
+          minHeight: '100vh', display: 'flex',
+          justifyContent: 'center', alignItems: 'flex-start', pt: { xs: 4, sm: 8 },
+          px: 2,
+        }}>
+          <Paper elevation={4} sx={{
+            p: { xs: 3, sm: 4 }, width: '100%', maxWidth: 580,
+            borderRadius: 3,
+            border: '1px solid', borderColor: 'rgba(21,101,192,0.12)',
+          }}>
+
+            {/* ── Header ── */}
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="h6" color="primary.dark">Client Account</Typography>
+              <Typography variant="caption" color="text.secondary">
+                {mode === 'search'
+                  ? 'Select a client account and optionally override editable fields.'
+                  : 'Enter a custom bank key and account number manually.'}
+              </Typography>
+            </Box>
+
+            <Divider sx={{ mb: 3 }} />
+
+            {/* ── Mode toggle pill ── */}
+            <Box sx={{
+              display: 'inline-flex', mb: 2.5,
+              bgcolor: alpha('#1565C0', 0.07),
+              borderRadius: 10, p: '3px', gap: '3px',
+            }}>
+              {[
+                { key: 'search', icon: 'search',      label: 'Search account' },
+                { key: 'manual', icon: 'edit_note',   label: 'Enter manually' },
+              ].map(({ key, icon, label }) => (
+                <Button
+                  key={key}
+                  size="small"
+                  variant={mode === key ? 'contained' : 'text'}
+                  onClick={() => key === 'manual' ? switchToManual() : switchToSearch()}
+                  startIcon={<span className="material-icons" style={{ fontSize: 15 }}>{icon}</span>}
+                  sx={{
+                    borderRadius: 8, px: 1.5, py: 0.4,
+                    fontSize: '0.75rem', fontWeight: 600,
+                    textTransform: 'none', minWidth: 0,
+                    ...(mode === key ? {
+                      boxShadow: '0 2px 8px rgba(21,101,192,0.25)',
+                    } : {
+                      color: 'primary.main',
+                      '&:hover': { bgcolor: alpha('#1565C0', 0.1) },
+                    }),
+                  }}
+                >
+                  {label}
+                </Button>
+              ))}
+            </Box>
+
+            {/* ══════════════════════════════════════════
+                SEARCH MODE
+            ══════════════════════════════════════════ */}
+            <Collapse in={mode === 'search'}>
+              <Box>
+                {/* Row: Autocomplete + edit btn */}
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Box sx={{ flex: 1 }}>
+                    <Controller
+                      name="clientAccount"
+                      control={control}
+                      render={({ field: { onChange } }) => (
+                        <Autocomplete
+                          options={mockAccounts}
+                          value={currentAccount}
+                          onChange={(_, v) => { onChange(v); handleSelect(v); }}
+                          getOptionLabel={(o) => o ? formatAccount(o) : ''}
+                          isOptionEqualToValue={(o, v) => o.id === v?.id}
+                          renderOption={(props, option) => {
+                            const bke = ['bank-key','both'].includes(option.possibleModify);
+                            const ace = ['account', 'both'].includes(option.possibleModify);
+                            return (
+                              <li {...props} key={option.id}>
+                                <Box sx={{ display: 'flex', flexDirection: 'column', width: '100%', py: 0.3 }}>
+                                  <Typography variant="body2" sx={{ fontWeight: 600, fontFamily: 'monospace', letterSpacing: 0.5 }}>
+                                    <span style={{ color: '#1565C0' }}>{option.bankKey}</span>
+                                    <span style={{ color: '#90A4AE' }}> – </span>
+                                    <span style={{ color: '#37474F' }}>{option.accountNumber}</span>
+                                  </Typography>
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.4 }}>
+                                    <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.6rem', mr: 0.3 }}>editable:</Typography>
+                                    <LockBadge label="Bank Key"   editable={bke} />
+                                    <LockBadge label="Account No." editable={ace} />
+                                  </Box>
+                                </Box>
+                              </li>
+                            );
+                          }}
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              label="Client Account"
+                              placeholder="Search by bank key or account…"
+                              inputProps={{ ...params.inputProps, style: { fontFamily: 'monospace', letterSpacing: 0.5 } }}
+                            />
+                          )}
+                        />
+                      )}
+                    />
+                  </Box>
+
+                  <Tooltip title={currentAccount ? 'Edit account fields' : 'Select an account first'} arrow>
+                    <span>
+                      <IconButton
+                        size="small"
+                        onClick={handleEditOpen}
+                        disabled={!currentAccount || isEditing}
+                        sx={circleBtn('primary.main', '#1565C0')}
+                      >
+                        <span className="material-icons" style={{ fontSize: 15 }}>edit</span>
+                      </IconButton>
+                    </span>
+                  </Tooltip>
+                </Box>
+
+                {/* possibleModify badge */}
+                {currentAccount && !isEditing && (
+                  <Fade in>
+                    <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <Typography variant="caption" color="text.secondary">Editable fields:</Typography>
+                      <Chip label={chip.label} color={chip.color} size="small" sx={{ height: 18, fontSize: '0.62rem', fontWeight: 600 }} />
+                    </Box>
+                  </Fade>
+                )}
+
+                {/* Edit panel */}
+                <Collapse in={isEditing}>
+                  <Box sx={{
+                    mt: 2, p: 2, borderRadius: 2,
+                    bgcolor: alpha('#1565C0', 0.04),
+                    border: '1px solid', borderColor: alpha('#1565C0', 0.15),
+                    display: 'flex', alignItems: 'flex-start', gap: 1, flexWrap: 'wrap',
+                  }}>
+                    <TextField
+                      label="Bank Key"
+                      value={editValues.bankKey}
+                      onChange={(e) => setEditValues(v => ({ ...v, bankKey: e.target.value }))}
+                      disabled={!canEditBankKey}
+                      inputProps={{ style: { fontFamily: 'monospace' } }}
+                      sx={{ width: 110 }}
+                      helperText={!canEditBankKey ? 'locked' : 'editable'}
+                      FormHelperTextProps={{ sx: { color: !canEditBankKey ? 'text.disabled' : 'success.main', fontSize: '0.65rem', mt: 0.3 } }}
+                    />
+                    <TextField
+                      label="Account Number"
+                      value={editValues.accountNumber}
+                      onChange={(e) => setEditValues(v => ({ ...v, accountNumber: e.target.value }))}
+                      disabled={!canEditAccount}
+                      inputProps={{ style: { fontFamily: 'monospace' } }}
+                      sx={{ width: 210 }}
+                      helperText={!canEditAccount ? 'locked' : 'editable'}
+                      FormHelperTextProps={{ sx: { color: !canEditAccount ? 'text.disabled' : 'success.main', fontSize: '0.65rem', mt: 0.3 } }}
+                    />
+                    <Box sx={{ display: 'flex', gap: 0.5, mt: 0.3 }}>
+                      <Tooltip title="Save changes" arrow>
+                        <IconButton size="small" onClick={handleSave} sx={circleBtn('success.main', '#2E7D32')}>
+                          <span className="material-icons" style={{ fontSize: 15 }}>check</span>
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Discard changes" arrow>
+                        <IconButton size="small" onClick={handleDiscard} sx={circleBtn('error.main', '#C62828')}>
+                          <span className="material-icons" style={{ fontSize: 15 }}>close</span>
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
+                  </Box>
+                </Collapse>
+              </Box>
+            </Collapse>
+
+            {/* ══════════════════════════════════════════
+                MANUAL MODE
+            ══════════════════════════════════════════ */}
+            <Collapse in={mode === 'manual'}>
+              <Box sx={{
+                p: 2, borderRadius: 2,
+                bgcolor: alpha('#F57C00', 0.04),
+                border: '1px dashed', borderColor: alpha('#F57C00', 0.35),
+              }}>
+                {/* header row */}
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, mb: 2 }}>
+                  <span className="material-icons" style={{ fontSize: 16, color: '#E65100' }}>info_outline</span>
+                  <Typography variant="caption" sx={{ color: '#E65100', fontWeight: 600, fontSize: '0.72rem' }}>
+                    Custom account — not validated against the list
+                  </Typography>
+                </Box>
+
+                <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+                  <TextField
+                    label="Bank Key"
+                    value={manualValues.bankKey}
+                    onChange={(e) => { setManualValues(v => ({ ...v, bankKey: e.target.value })); setSubmittedInfo(null); }}
+                    placeholder="e.g. 111"
+                    inputProps={{ style: { fontFamily: 'monospace' } }}
+                    sx={{ width: 140 }}
+                    helperText="3-digit bank identifier"
+                    FormHelperTextProps={{ sx: { fontSize: '0.65rem' } }}
+                  />
+                  <TextField
+                    label="Account Number"
+                    value={manualValues.accountNumber}
+                    onChange={(e) => { setManualValues(v => ({ ...v, accountNumber: e.target.value })); setSubmittedInfo(null); }}
+                    placeholder="e.g. 2222222222222"
+                    inputProps={{ style: { fontFamily: 'monospace' } }}
+                    sx={{ width: 230 }}
+                    helperText="Customer account number"
+                    FormHelperTextProps={{ sx: { fontSize: '0.65rem' } }}
+                  />
+                </Box>
+
+                {/* live preview */}
+                {(manualValues.bankKey || manualValues.accountNumber) && (
+                  <Fade in>
+                    <Box sx={{ mt: 1.5, display: 'flex', alignItems: 'center', gap: 0.7 }}>
+                      <Typography variant="caption" color="text.secondary">Preview:</Typography>
+                      <Typography variant="caption" sx={{ fontFamily: 'monospace', fontWeight: 700, color: 'primary.dark', letterSpacing: 0.8 }}>
+                        {manualValues.bankKey || '???'}
+                        <span style={{ color: '#90A4AE' }}> – </span>
+                        {manualValues.accountNumber || '???'}
+                      </Typography>
+                    </Box>
+                  </Fade>
+                )}
+              </Box>
+            </Collapse>
+
+            {/* ── Submit ── */}
+            <Box sx={{ mt: 4 }}>
+              <Button
+                variant="contained"
+                fullWidth
+                size="large"
+                onClick={handleSubmit(onSubmit)}
+                disabled={!isSubmittable}
+                sx={{ borderRadius: 2, py: 1.2, fontSize: '0.95rem', fontWeight: 600 }}
+              >
+                Submit
+              </Button>
+            </Box>
+
+            {/* ── Result ── */}
+            <Collapse in={!!submittedInfo}>
+              <Box sx={{ mt: 3 }}>
+                <TextField
+                  label="Submitted Account"
+                  value={submittedInfo || ''}
+                  fullWidth
+                  InputProps={{
+                    readOnly: true,
+                    style: { fontFamily: 'monospace', letterSpacing: 0.8, fontWeight: 600 },
+                    endAdornment: (
+                      <span className="material-icons" style={{ color: '#2E7D32', fontSize: 20 }}>check_circle</span>
+                    ),
+                  }}
+                  color="success"
+                  focused
+                  helperText={`Account ${mode === 'manual' ? '(custom entry)' : '(from list)'} successfully submitted`}
+                />
+              </Box>
+            </Collapse>
+
+          </Paper>
+        </Box>
+      );
+    }
+
+    /* ─── App ────────────────────────────────────────────────── */
+    function App() {
+      return (
+        <ThemeProvider theme={theme}>
+          <CssBaseline />
+          <ClientAccountForm />
+        </ThemeProvider>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
