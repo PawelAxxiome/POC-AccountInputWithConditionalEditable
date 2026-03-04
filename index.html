@@ -224,45 +224,11 @@
 
             <Divider sx={{ mb: 3 }} />
 
-            {/* ── Mode toggle pill ── */}
-            <Box sx={{
-              display: 'inline-flex', mb: 2.5,
-              bgcolor: alpha('#1565C0', 0.07),
-              borderRadius: 10, p: '3px', gap: '3px',
-            }}>
-              {[
-                { key: 'search', icon: 'search',      label: 'Search account' },
-                { key: 'manual', icon: 'edit_note',   label: 'Enter manually' },
-              ].map(({ key, icon, label }) => (
-                <Button
-                  key={key}
-                  size="small"
-                  variant={mode === key ? 'contained' : 'text'}
-                  onClick={() => key === 'manual' ? switchToManual() : switchToSearch()}
-                  startIcon={<span className="material-icons" style={{ fontSize: 15 }}>{icon}</span>}
-                  sx={{
-                    borderRadius: 8, px: 1.5, py: 0.4,
-                    fontSize: '0.75rem', fontWeight: 600,
-                    textTransform: 'none', minWidth: 0,
-                    ...(mode === key ? {
-                      boxShadow: '0 2px 8px rgba(21,101,192,0.25)',
-                    } : {
-                      color: 'primary.main',
-                      '&:hover': { bgcolor: alpha('#1565C0', 0.1) },
-                    }),
-                  }}
-                >
-                  {label}
-                </Button>
-              ))}
-            </Box>
-
             {/* ══════════════════════════════════════════
-                SEARCH MODE
+                SEARCH MODE — Autocomplete (hidden while editing)
             ══════════════════════════════════════════ */}
-            <Collapse in={mode === 'search'}>
+            <Collapse in={mode === 'search' && !isEditing}>
               <Box>
-                {/* Row: Autocomplete + edit btn */}
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Box sx={{ flex: 1 }}>
                     <Controller
@@ -288,7 +254,7 @@
                                   </Typography>
                                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.4 }}>
                                     <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.6rem', mr: 0.3 }}>editable:</Typography>
-                                    <LockBadge label="Bank Key"   editable={bke} />
+                                    <LockBadge label="Bank Key"    editable={bke} />
                                     <LockBadge label="Account No." editable={ace} />
                                   </Box>
                                 </Box>
@@ -313,7 +279,7 @@
                       <IconButton
                         size="small"
                         onClick={handleEditOpen}
-                        disabled={!currentAccount || isEditing}
+                        disabled={!currentAccount}
                         sx={circleBtn('primary.main', '#1565C0')}
                       >
                         <span className="material-icons" style={{ fontSize: 15 }}>edit</span>
@@ -323,7 +289,7 @@
                 </Box>
 
                 {/* possibleModify badge */}
-                {currentAccount && !isEditing && (
+                {currentAccount && (
                   <Fade in>
                     <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 0.5 }}>
                       <Typography variant="caption" color="text.secondary">Editable fields:</Typography>
@@ -331,49 +297,60 @@
                     </Box>
                   </Fade>
                 )}
+              </Box>
+            </Collapse>
 
-                {/* Edit panel */}
-                <Collapse in={isEditing}>
-                  <Box sx={{
-                    mt: 2, p: 2, borderRadius: 2,
-                    bgcolor: alpha('#1565C0', 0.04),
-                    border: '1px solid', borderColor: alpha('#1565C0', 0.15),
-                    display: 'flex', alignItems: 'flex-start', gap: 1, flexWrap: 'wrap',
-                  }}>
-                    <TextField
-                      label="Bank Key"
-                      value={editValues.bankKey}
-                      onChange={(e) => setEditValues(v => ({ ...v, bankKey: e.target.value }))}
-                      disabled={!canEditBankKey}
-                      inputProps={{ style: { fontFamily: 'monospace' } }}
-                      sx={{ width: 110 }}
-                      helperText={!canEditBankKey ? 'locked' : 'editable'}
-                      FormHelperTextProps={{ sx: { color: !canEditBankKey ? 'text.disabled' : 'success.main', fontSize: '0.65rem', mt: 0.3 } }}
-                    />
-                    <TextField
-                      label="Account Number"
-                      value={editValues.accountNumber}
-                      onChange={(e) => setEditValues(v => ({ ...v, accountNumber: e.target.value }))}
-                      disabled={!canEditAccount}
-                      inputProps={{ style: { fontFamily: 'monospace' } }}
-                      sx={{ width: 210 }}
-                      helperText={!canEditAccount ? 'locked' : 'editable'}
-                      FormHelperTextProps={{ sx: { color: !canEditAccount ? 'text.disabled' : 'success.main', fontSize: '0.65rem', mt: 0.3 } }}
-                    />
-                    <Box sx={{ display: 'flex', gap: 0.5, mt: 0.3 }}>
-                      <Tooltip title="Save changes" arrow>
-                        <IconButton size="small" onClick={handleSave} sx={circleBtn('success.main', '#2E7D32')}>
-                          <span className="material-icons" style={{ fontSize: 15 }}>check</span>
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Discard changes" arrow>
-                        <IconButton size="small" onClick={handleDiscard} sx={circleBtn('error.main', '#C62828')}>
-                          <span className="material-icons" style={{ fontSize: 15 }}>close</span>
-                        </IconButton>
-                      </Tooltip>
-                    </Box>
+            {/* ══════════════════════════════════════════
+                EDIT PANEL — replaces autocomplete while editing
+            ══════════════════════════════════════════ */}
+            <Collapse in={mode === 'search' && isEditing}>
+              <Box sx={{
+                p: 2, borderRadius: 2,
+                bgcolor: alpha('#1565C0', 0.04),
+                border: '1px solid', borderColor: alpha('#1565C0', 0.2),
+              }}>
+                {/* mini header */}
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, mb: 1.5 }}>
+                  <span className="material-icons" style={{ fontSize: 15, color: '#1565C0' }}>edit</span>
+                  <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 600, fontSize: '0.72rem' }}>
+                    Editing account fields
+                  </Typography>
+                </Box>
+
+                <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, flexWrap: 'wrap' }}>
+                  <TextField
+                    label="Bank Key"
+                    value={editValues.bankKey}
+                    onChange={(e) => setEditValues(v => ({ ...v, bankKey: e.target.value }))}
+                    disabled={!canEditBankKey}
+                    inputProps={{ style: { fontFamily: 'monospace' } }}
+                    sx={{ width: 110 }}
+                    helperText={!canEditBankKey ? 'locked' : 'editable'}
+                    FormHelperTextProps={{ sx: { color: !canEditBankKey ? 'text.disabled' : 'success.main', fontSize: '0.65rem', mt: 0.3 } }}
+                  />
+                  <TextField
+                    label="Account Number"
+                    value={editValues.accountNumber}
+                    onChange={(e) => setEditValues(v => ({ ...v, accountNumber: e.target.value }))}
+                    disabled={!canEditAccount}
+                    inputProps={{ style: { fontFamily: 'monospace' } }}
+                    sx={{ width: 210 }}
+                    helperText={!canEditAccount ? 'locked' : 'editable'}
+                    FormHelperTextProps={{ sx: { color: !canEditAccount ? 'text.disabled' : 'success.main', fontSize: '0.65rem', mt: 0.3 } }}
+                  />
+                  <Box sx={{ display: 'flex', gap: 0.5, mt: 0.3 }}>
+                    <Tooltip title="Save changes" arrow>
+                      <IconButton size="small" onClick={handleSave} sx={circleBtn('success.main', '#2E7D32')}>
+                        <span className="material-icons" style={{ fontSize: 15 }}>check</span>
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Discard changes" arrow>
+                      <IconButton size="small" onClick={handleDiscard} sx={circleBtn('error.main', '#C62828')}>
+                        <span className="material-icons" style={{ fontSize: 15 }}>close</span>
+                      </IconButton>
+                    </Tooltip>
                   </Box>
-                </Collapse>
+                </Box>
               </Box>
             </Collapse>
 
@@ -386,14 +363,12 @@
                 bgcolor: alpha('#F57C00', 0.04),
                 border: '1px dashed', borderColor: alpha('#F57C00', 0.35),
               }}>
-                {/* header row */}
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, mb: 2 }}>
                   <span className="material-icons" style={{ fontSize: 16, color: '#E65100' }}>info_outline</span>
                   <Typography variant="caption" sx={{ color: '#E65100', fontWeight: 600, fontSize: '0.72rem' }}>
                     Custom account — not validated against the list
                   </Typography>
                 </Box>
-
                 <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
                   <TextField
                     label="Bank Key"
@@ -416,8 +391,6 @@
                     FormHelperTextProps={{ sx: { fontSize: '0.65rem' } }}
                   />
                 </Box>
-
-                {/* live preview */}
                 {(manualValues.bankKey || manualValues.accountNumber) && (
                   <Fade in>
                     <Box sx={{ mt: 1.5, display: 'flex', alignItems: 'center', gap: 0.7 }}>
@@ -432,6 +405,28 @@
                 )}
               </Box>
             </Collapse>
+
+            {/* ── Mode switch link — shown below the active input, only when NOT editing ── */}
+            {!isEditing && (
+              <Box sx={{ mt: 1 }}>
+                <Button
+                  size="small"
+                  onClick={mode === 'search' ? switchToManual : switchToSearch}
+                  startIcon={
+                    <span className="material-icons" style={{ fontSize: 13 }}>
+                      {mode === 'search' ? 'edit_note' : 'search'}
+                    </span>
+                  }
+                  sx={{
+                    textTransform: 'none', fontSize: '0.72rem', fontWeight: 500,
+                    color: 'text.secondary', px: 0.5, py: 0.3,
+                    '&:hover': { color: 'primary.main', bgcolor: 'transparent', textDecoration: 'underline' },
+                  }}
+                >
+                  {mode === 'search' ? 'Enter account manually instead' : 'Search from account list instead'}
+                </Button>
+              </Box>
+            )}
 
             {/* ── Submit ── */}
             <Box sx={{ mt: 4 }}>
